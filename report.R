@@ -1,7 +1,8 @@
 # install packages and load libraries 
 
-# install.packages('data.table', 'mlr3verse','precrec', 'mlr3', 'mlr3viz', 'skimr', 'DataExplorer', 'rpart')
-# install.packages("apcluster")
+install.packages('data.table', 'mlr3verse','precrec', 'mlr3', 'mlr3viz', 'skimr', 'DataExplorer', 'rpart')
+
+install.packages("apcluster")
 
 library("data.table")
 library("mlr3verse")
@@ -11,7 +12,8 @@ library('mlr3viz')
 
 # load the dataset into R:
 
-# download.file("https://www.louisaslett.com/Courses/MISCADA/heart_failure.csv", "heart_failure.csv")
+download.file("https://www.louisaslett.com/Courses/MISCADA/heart_failure.csv", "heart_failure.csv")
+
 heart_failure <- read.csv("heart_failure.csv", stringsAsFactors = TRUE)
 
 
@@ -63,9 +65,7 @@ cv10$instantiate(task_cardiac)
 lrn_baseline <- lrn("classif.featureless", predict_type = "prob")
 lrn_cart <- lrn("classif.rpart", predict_type = "prob")
 
-# You will need to copy these to the R console to see the output properly
-lrn_baseline$param_set
-lrn_cart$param_set
+
 
 # fitting the learners 
 
@@ -101,14 +101,12 @@ res$aggregate(list(msr("classif.ce"),
 # results
 trees <- res$resample_result(2)
 
-# Then, let's look at the tree from first CV iteration, for example:
+# tree from first CV iteration:
 tree1 <- trees$learners[[1]]
 
-# This is a fitted rpart object, so we can look at the model within
 tree1_rpart <- tree1$model
 
-# If you look in the rpart package documentation, it tells us how to plot the
-# tree that was fitted
+# plot the tree that was fitted
 plot(tree1_rpart, compress = TRUE, margin = 0.1)
 text(tree1_rpart, use.n = TRUE, cex = 0.8)
 
@@ -120,17 +118,6 @@ plot(res$resample_result(2)$learners[[5]]$model, compress = TRUE, margin = 0.1)
 text(res$resample_result(2)$learners[[5]]$model, use.n = TRUE, cex = 0.8)
 
 
-#' It may be that these trees need to be pruned.  
-#' To do this, we would need to enable the cross-validation option to `rpart` in the learner.  
-#' We can fit this individually and make a selection for the cost penalty (see alpha in lectures),
-#' before then setting this value when benchmarking (NOTE: this is not quite optimal 
-#' but MLR3 doesn't yet have the option for us to select this within folds ... coming soon hopefully).
-#' 
-#' In particular, note we are now doing *nested* cross validation 
-#' which is the correct way to do parameter selection without biasing test error.  
-#' Change the 5 in double brackets [[]] to other values from 1 to 5 to see cross validation plot from each round.
-#' 
-## -------------------------------------------------------------------------------------------
 # Enable cross validation
 lrn_cart_cv <- lrn("classif.rpart", predict_type = "prob", xval = 10)
 
@@ -142,13 +129,7 @@ rpart::plotcp(res_cart_cv$learners[[4]]$model)
 rpart::plotcp(res_cart_cv$learners[[5]]$model)
 
 
-
-
-
-#' 
 #' Now, choose a cost penalty and add this as a model to our benchmark set:
-#' 
-## -------------------------------------------------------------------------------------------
 lrn_cart_cp <- lrn("classif.rpart", predict_type = "prob", cp = 0.02)
 
 res <- benchmark(data.table(
@@ -176,28 +157,9 @@ text(res$resample_result(2)$learners[[5]]$model, use.n = TRUE, cex = 0.8)
 plot(res$resample_result(3)$learners[[5]]$model, compress = TRUE, margin = 0.1)
 text(res$resample_result(3)$learners[[5]]$model, use.n = TRUE, cex = 0.8)
 
-#' 
-#' In this case we may see a slight improvement to false-positive rate at the cost of higher errors elsewhere.  These might be tradeoffs you need to make in the real world.
-#' 
-
-
-#' 
-#' 
-#' 
-#' ### Advanced: super learning
-#' 
-#' Rather than having to choose among the models that we fitted above, we could instead fit all of them and have a final "super learner" fitted which automatically selects the best prediction based on the available base learners.  We can do this using the pipelines in MLR3 ...
-#' 
-#' We start from scratch to make this more advanced example self contained.
-#' 
-## -------------------------------------------------------------------------------------------
-
+# superlearner
 
 set.seed(212) # set seed for reproducibility
-
-library(precrec)
-library(mlr3)
-library(mlr3viz)
 
 task_cardiac <- TaskClassif$new(id = "cardiac",
                                 backend = na.omit(heart_failure),
@@ -424,8 +386,6 @@ rr$aggregate(msr("classif.ce"))
 # merged prediction objects of all resampling iterations
 pred = rr$prediction()
 
-summary(pred)
-
 pred$confusion
 
 
@@ -445,5 +405,3 @@ pred$score(measures = list(msr("classif.ce"),
                            msr("classif.acc"),
                            msr("classif.fpr"),
                            msr("classif.fnr")))
-
-
